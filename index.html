@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bấm nút phát biểu</title>
+    <style>
+      :root {
+        --bg: #172033;
+        --panel: #1f2a40;
+        --primary: #16a34a;
+        --secondary: #64748b;
+        --warning: #f97316;
+        --blue: #2563eb;
+        --yellow: #eab308;
+        --red: #dc2626;
+        --text: #ffffff;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--bg);
+        color: var(--text);
+        font-family: Arial, Helvetica, sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+
+      .game {
+        width: min(100%, 520px);
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 18px;
+        padding: 28px 24px 22px;
+        text-align: center;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+      }
+
+      h2 {
+        margin: 0 0 12px;
+        font-size: clamp(1.5rem, 2vw, 2rem);
+      }
+
+      .subtitle {
+        margin: 0 0 18px;
+        font-size: 1rem;
+        color: #dfe7f7;
+      }
+
+      #clock {
+        font-size: clamp(4rem, 12vw, 7rem);
+        font-weight: 700;
+        margin: 20px 0;
+        line-height: 1;
+        transition: color 0.1s ease;
+      }
+
+      .controls {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 8px;
+      }
+
+      button {
+        padding: 15px 28px;
+        font-size: 1.1rem;
+        border: 0;
+        border-radius: 12px;
+        color: white;
+        cursor: pointer;
+        transition: transform 0.15s ease, opacity 0.15s ease;
+        min-width: 140px;
+      }
+
+      button:hover:not(:disabled) {
+        transform: translateY(-1px);
+      }
+
+      button:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+      }
+
+      #start {
+        background: var(--primary);
+      }
+
+      #stop {
+        background: var(--secondary);
+      }
+
+      #reset {
+        background: #475569;
+        font-size: 0.95rem;
+        margin-top: 18px;
+      }
+
+      #result {
+        margin: 18px 0 10px;
+        font-size: clamp(1.4rem, 2.3vw, 2rem);
+      }
+
+      #detail, #record {
+        font-size: 1rem;
+        line-height: 1.6;
+        min-height: 24px;
+      }
+
+      .record-box {
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="game">
+      <h2>Bấm nút phát biểu</h2>
+      <p class="subtitle">Bấm STOP sát thời điểm đủ 10 giây</p>
+
+      <div id="clock">10</div>
+
+      <div class="controls">
+        <button id="start">START</button>
+        <button id="stop" disabled>STOP</button>
+      </div>
+
+      <h2 id="result">Sẵn sàng?</h2>
+      <div id="detail"></div>
+      <div class="record-box">
+        <p id="record">Chưa có thành tích</p>
+      </div>
+      <button id="reset">CHƠI LẠI</button>
+    </div>
+
+    <script>
+      let startTime = 0, timer = null, running = false;
+      let attempts = 0, best = null;
+
+      const clock = document.getElementById('clock');
+      const start = document.getElementById('start');
+      const stop = document.getElementById('stop');
+      const reset = document.getElementById('reset');
+      const result = document.getElementById('result');
+      const detail = document.getElementById('detail');
+      const record = document.getElementById('record');
+
+      function update() {
+        if (!running) return;
+        const elapsed = (performance.now() - startTime) / 1000;
+        const remaining = Math.max(0, 10 - Math.floor(elapsed));
+        clock.textContent = String(remaining).padStart(2, '0');
+        clock.style.color = remaining === 0 ? '#f97316' : 'white';
+      }
+
+      start.onclick = function () {
+        if (running) return;
+        clearInterval(timer);
+        running = true;
+        startTime = performance.now();
+        clock.textContent = '10';
+        clock.style.color = 'white';
+        result.textContent = 'ĐANG ĐẾM...';
+        result.style.color = 'white';
+        detail.textContent = '';
+        start.disabled = true;
+        stop.disabled = false;
+        stop.style.background = '#f97316';
+        timer = setInterval(update, 10);
+      };
+
+      stop.onclick = function () {
+        if (!running) return;
+        const elapsed = (performance.now() - startTime) / 1000;
+        running = false;
+        clearInterval(timer);
+        attempts++;
+
+        const error = elapsed - 10;
+        const absError = Math.abs(error);
+        let color, message;
+
+        if (error < 0) {
+          color = '#dc2626';
+          message = 'BẤM QUÁ SỚM!';
+        } else if (error <= 0.20) {
+          color = '#16a34a';
+          message = 'XUẤT SẮC!';
+        } else if (error <= 0.50) {
+          color = '#2563eb';
+          message = 'KHÁ TỐT!';
+        } else if (error <= 0.80) {
+          color = '#eab308';
+          message = 'HƠI CHẬM!';
+        } else {
+          color = '#dc2626';
+          message = 'QUÁ CHẬM!';
+        }
+
+        clock.textContent = String(Math.max(0, 10 - Math.floor(elapsed))).padStart(2, '0');
+        stop.style.background = color;
+        stop.disabled = true;
+        result.textContent = message;
+        result.style.color = color;
+
+        detail.innerHTML =
+          'Thời gian thực tế: <b>' + elapsed.toFixed(3) + ' giây</b><br>' +
+          'Sai lệch: <b>' + (error > 0 ? '+' : '') + error.toFixed(3) + ' giây</b>';
+
+        if (best === null || absError < best) best = absError;
+        record.innerHTML = 'Số lần thử: ' + attempts + '<br>' + 'Sai lệch tốt nhất: ' + best.toFixed(3) + ' giây';
+
+        start.disabled = false;
+        start.textContent = 'THỬ LẠI';
+      };
+
+      reset.onclick = function () {
+        clearInterval(timer);
+        running = false;
+        clock.textContent = '10';
+        clock.style.color = 'white';
+        result.textContent = 'Sẵn sàng?';
+        result.style.color = 'white';
+        detail.textContent = '';
+        start.disabled = false;
+        start.textContent = 'START';
+        stop.disabled = true;
+        stop.style.background = '#64748b';
+      };
+    </script>
+  </body>
+</html>
